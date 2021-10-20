@@ -22,8 +22,14 @@ import matplotlib.pyplot as plt
 #filenames = ["0noise-10hidden-henrik-0rtx-50budget", "10noise-10hidden-henrik-0rtx-50budget", "10noise-10hidden-henrik-4rtx-50budget", "10noise-10hidden-henrik-1rtx-50budget"]
 #filenames = ["0noise-10hidden-henrik-0rtx-50budget", "1noise-10hidden-henrik-0rtx-50budget", "2noise-10hidden-henrik-0rtx-50budget", "10noise-10hidden-henrik-0rtx-50budget", "20noise-10hidden-henrik-0rtx-50budget", "30noise-10hidden-henrik-0rtx-50budget", "40noise-10hidden-henrik-0rtx-50budget"]
 #filenames = ["20noise-10hidden-henrik-0rtx-100budget", "20noise-10hidden-henrik-1rtx-100budget", "20noise-10hidden-henrik-3rtx-100budget"]
+#filenames = ["3.1622776601683795noise-10hidden-henrik-0rtx-300budget", "3.1622776601683795noise-10hidden-henrik-1rtx-300budget"]
+#filenames = ["3.1622776601683795noise-10hidden-henrik-0rtx-400budget", "3.1622776601683795noise-10hidden-henrik-1rtx-400budget"]
+#filenames = ["8.94427190999916noise-10hidden-henrik-0rtx-400budget", "8.94427190999916noise-10hidden-henrik-1rtx-400budget"]
+#filenames = ["8.94427190999916noise-10hidden-henrik-0rtx-400budget", "8.94427190999916noise-10hidden-henrik-1rtx-400budget", "8.94427190999916noise-10hidden-henrik-2rtx-400budget", "8.94427190999916noise-10hidden-henrik-3rtx-400budget", "8.94427190999916noise-10hidden-henrik-4rtx-400budget", "8.94427190999916noise-10hidden-henrik-5rtx-400budget"]
+filenames = ["9noise-10hidden-henrik-0rtx-400budget", "9noise-10hidden-henrik-1rtx-400budget"]
+#filenames = ["3noise-10hidden-henrik-0rtx-400budget", "3noise-10hidden-henrik-1rtx-400budget", "3noise-10hidden-henrik-2rtx-400budget", "3noise-10hidden-henrik-3rtx-400budget", "3noise-10hidden-henrik-4rtx-400budget", "3noise-10hidden-henrik-5rtx-400budget", "3noise-10hidden-henrik-6rtx-400budget"]
 #--Load norm_history from files
-filenames = ["1noise-10hidden-henrik-3rtx-101budget_norm", "1noise-10hidden-henrik-3rtx-101budget_error"]
+#filenames = ["1noise-10hidden-henrik-3rtx-101budget_norm", "1noise-10hidden-henrik-3rtx-101budget_error"]
 #filenames = ["20noise-10hidden-henrik-1rtx-100budget_norm", "20noise-10hidden-henrik-1rtx-100budget_error", "20noise-10hidden-henrik-1rtx-100budget_rcv"]
 #filenames = ["1noise-10hidden-henrik-9rtx-200budget_norm", "2noise-10hidden-henrik-0rtx-200budget_norm"]
 #filenames = ["2noise-10hidden-henrik-0rtx-20budget_norm", "2noise-10hidden-henrik-0rtx-20budget_error"]
@@ -31,11 +37,12 @@ filenames = ["1noise-10hidden-henrik-3rtx-101budget_norm", "1noise-10hidden-henr
 #filenames = ["8noise-10hidden-henrik-0rtx-50budget_norm", "8noise-10hidden-henrik-0rtx-50budget_error"]
 #filenames = ["10noise-10hidden-henrik-0rtx-50budget_norm", "10noise-10hidden-henrik-0rtx-50budget_error", "10noise-10hidden-henrik-0rtx-50budget_rcv"]
 #filenames = ["0noise-10hidden-henrik-0rtx-50budget_norm", "0noise-10hidden-henrik-0rtx-50budget_error", "0noise-10hidden-henrik-0rtx-50budget_rcv"]
-accuracies = False
+accuracies = True
+bound = True
 ymin= 0
 ymax = 0
 if accuracies == True:
-    ymin = 0
+    ymin = 0.88
     ymax = 0.92
 else:
     ymin = 0
@@ -55,31 +62,58 @@ for acc_history in acc_histories:
     if len(acc_history) > max_len:
         max_len = len(acc_history)
         
-#--Plot acc_histories
-start = 0
-end = -1
-fixed_labels = True
-if fixed_labels == False:
-    labels = filenames
-else:
-    if accuracies == True:
-        labels = ["M=1", "M=2", "M=4", "M=32", "M=0.1growth", "M=0.2growth", "M=0.3growth"]
+if bound == False:
+    #--Plot acc_histories
+    start = 0
+    end = -1
+    fixed_labels = True
+    if fixed_labels == False:
+        labels = filenames
     else:
-        labels = ["norm", "error", "rcv_norm"]
-    #labels = ["sigma=0", "sigma=1", "sigma=2", "sigma=10", "sigma=20", "sigma=30", "sigma=40"]
-fig = plt.figure()
-i = 0
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-for acc_history in acc_histories:
-    plt.plot(range(len(acc_history)), acc_history, colors[i], label=labels[i])
-    dashed_line_length = max_len-len(acc_history)
-    plt.hlines(acc_history[len(acc_history)-1], len(acc_history)-1, max_len, colors[i], linestyles='dashed')
-    plt.ylim((ymin,ymax))
-    #plt.plot(range(dashed_line_length), [acc_history[len(acc_history)-1]]*dashed_line_length, colors[i] + "--", xmin=len(acc_history))
-    i = i + 1
-plt.xlabel("Communication Round")
-plt.ylabel("Classification Accuracy")
-plt.legend()
-#compareplot_name = "200budget-1noise-comparison"
-compareplot_name = "100budget-unnormalized-norm-comparison"
-plt.savefig("./plots/"+compareplot_name+".png", format='png')
+        if accuracies == True:
+            labels = ["M=1", "M=2", "M=3", "M=4", "M=5", "M=6", "M=7", "M=8", "M=9", "M=10", "M=0.1growth", "M=0.2growth", "M=0.3growth"]
+        else:
+            labels = ["norm", "error", "rcv_norm"]
+        #labels = ["sigma=0", "sigma=1", "sigma=2", "sigma=10", "sigma=20", "sigma=30", "sigma=40"]
+    fig = plt.figure()
+    i = 0
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    for acc_history in acc_histories:
+        plt.plot(range(len(acc_history)), acc_history, colors[i], label=labels[i])
+        dashed_line_length = max_len-len(acc_history)
+        plt.hlines(acc_history[len(acc_history)-1], len(acc_history)-1, max_len, colors[i], linestyles='dashed')
+        plt.ylim((ymin,ymax))
+        #plt.plot(range(dashed_line_length), [acc_history[len(acc_history)-1]]*dashed_line_length, colors[i] + "--", xmin=len(acc_history))
+        i = i + 1
+    plt.xlabel("Communication Round")
+    plt.ylabel("Classification Accuracy")
+    plt.legend(loc=2)
+    #compareplot_name = "200budget-1noise-comparison"
+    compareplot_name = "100budget-unnormalized-norm-comparison"
+    plt.savefig("./plots/"+compareplot_name+".png", format='png')
+
+#--Plot bound
+if bound == True:
+    bounds = []
+    filename = "9noise-10hidden-henrik-bound-400budget"
+    with open("./data/" + filename + ".txt", "r") as filehandle:
+        for line in filehandle:
+            bounds.append(float(line))
+    
+    final_accs = []
+    for acc_history in acc_histories:
+        final_accs.append(acc_history[-1])
+        
+    #scaling
+    factor = 100
+    zero_point = final_accs[0]*factor
+    for i in range(len(final_accs)):
+        final_accs[i] = final_accs[i]*factor
+        print(final_accs[i])
+        final_accs[i] = final_accs[i] - zero_point + 1
+        
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    plt.plot(range(len(bounds)), bounds, colors[0], label="bound")
+    plt.plot(range(len(final_accs)), final_accs, colors[1], label="accuracy")
+    plt.legend()
+        

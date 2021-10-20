@@ -21,6 +21,7 @@ class PowerControl:
         
     def setRtx(self, rtx):
         self.rtx = rtx
+        self.M = rtx+1
         
     def setBudgetGrowth(self, budget, growth):
         self.remaining_budget = budget
@@ -65,15 +66,15 @@ class PowerControl:
         
         return b_x
     
-    def setT(self):
+    def setM(self):
         if self.static == True:
-            self.T = self.rtx + 1
+            self.M = self.rtx + 1
         else:
-            self.T = int(1+self.growth*self.round)
+            self.M = int(1+self.growth*self.round)
             print("1+self.growth*self.round=", 1+self.growth*self.round)
             print("int(1+self.growth*self.round)=", int(1+self.growth*self.round))
-            self.remaining_budget = self.remaining_budget - self.T
-            print("Setting self.T to", self.T)
+            self.remaining_budget = self.remaining_budget - self.M
+            print("Setting self.M to", self.M)
     
     def getBudget(self):
         return self.remaining_budget
@@ -87,7 +88,7 @@ class PowerControl:
             for i in range(k+1):
                 sum1 = sum1 + self.P_max[i]*np.abs(self.h[i])**2
                 sum2 = sum2 + np.sqrt(self.P_max[i])*np.abs(self.h[i])
-            eta_tilde[k] = ((self.sigma_w**2+self.T*sum1)/(self.T*sum2))**2
+            eta_tilde[k] = ((self.sigma_w**2/self.M+sum1)/(sum2))**2
         return np.min(eta_tilde)
     
     def henrikB(self):
@@ -123,13 +124,13 @@ class PowerControl:
         sum_est = np.zeros((m,1))
         for i in range(m):
             est_s = 0
-            for j in range(self.T):
+            for j in range(self.M):
                 #Generate new noise
                 self.generateW()
                 #Calculate sum OTA
                 s = rows[:,i].reshape(1,self.n)
                 est_s = est_s + (np.dot(s, np.multiply(self.h, self.b_x)) + self.w)/np.sqrt(self.eta_x)
-            sum_est[i] = np.real(est_s)/(self.T)
+            sum_est[i] = np.real(est_s)/(self.M)
         return sum_est
     
     #Assumes rows is nxm matrix
@@ -139,7 +140,7 @@ class PowerControl:
         sum_est = np.zeros((m,1))
         for i in range(m):
             est_s = 0
-            for j in range(self.T):
+            for j in range(self.M):
                 #Generate new noise
                 self.generateW()
                 #Calculate sum OTA
@@ -150,11 +151,11 @@ class PowerControl:
                 # print("np.multiply(self.h, self.b_h)/np.sqrt(self.eta_h) =", np.multiply(self.h, self.b_h)/np.sqrt(self.eta_h))
                 # print("np.mean(s) =", np.mean(s))
                 # print("est_s = ", est_s)
-            sum_est[i] = np.real(est_s)/(self.T)
+            sum_est[i] = np.real(est_s)/(self.M)
         return sum_est
     
     def newRound(self):
-        self.setT()
+        self.setM()
         self.round = self.round + 1
         
     def estLayer(self, rows, method):

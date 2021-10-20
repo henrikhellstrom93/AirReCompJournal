@@ -6,16 +6,17 @@ Created on Wed Feb 17 17:09:19 2021
 """
 import math
 import HelperFunctions
+import tensorflow as tf
+import time
+import numpy as np
+from Power_Control import PowerControl
+from tensorflow.keras.optimizers import SGD
 
 #--Simulation settings--
 static = True
 if static == True:
-    search_rtx = False #Should the program search for the best rtx?
-    if search_rtx == False:
-        rtx_fix = 0 #Number of retransmissions
-        rtx_max = 0
-    else:
-        rtx_max = 4 # Maximum number of retransmissions for search
+    rtx_list = [0, 1]
+    #rtx_list = [0, 1]
 else:
     growth = 0.2
     #These three variables doesn't do anything for dynamic retransmissions,
@@ -23,14 +24,18 @@ else:
     rtx_max = 0
     search_rtx = False
     rtx_fix = 0
-uplink_budget = 100 # Uplink transmission constraint
-normalize = False
+uplink_budget = 400 # Uplink transmission constraint
+normalize = True
 num_devices = 10 # Number of devices
 num_av = 1
 bs = 50 # Batch size for local training at devices
-sigma_w = 0; # Noise variance
-#sigma_w = 1;
-ep = 1 # Number of local epochs before communication round
+sigma_w = 9 # Noise variance
+#sigma_w = 1
+beta = 0.05 # Learning rate
+C_bar = uplink_budget #Cost budget
+C_u = 1 #Cost of uplink transmission
+C_t = 3 #Cost of local training
+ep = 2 # Number of local epochs before communication round
 filename_start = str(sigma_w) + "noise-10hidden-henrik-"
 if static == True:
     filename_end = "rtx-" + str(uplink_budget) + "budget"
@@ -40,10 +45,6 @@ powercontrol = "henrik"
 # powercontrol = "xiaowen"
 
 #--Load MNIST dataset--
-import tensorflow as tf
-import time
-import numpy as np
-from Power_Control import PowerControl
 
 mnist = tf.keras.datasets.mnist
 
@@ -68,13 +69,35 @@ av_acc_histories = []
 norm_history = []
 rcv_norm_history = []
 comm_error_history = []
+bounds = np.zeros((len(rtx_list), 1))
+
+#pc is instantiated before loops to make sure all different M are compared with the same fading channel
+pc = PowerControl(num_devices, sigma_w)
+
+#--Calculate bound for heuristic--
+K = num_devices
+h = pc.h
+for rtx in rtx_list:
+    pc.setRtx(rtx)
+    M = rtx+1
+    N = math.floor(C_bar/(C_t+M*C_u))
+    eta = pc.henrikEta()
+    pc.eta_h = eta
+    b_h = pc.henrikB()
+    p = np.square(np.abs(b_h))
+    bound = K*np.sqrt(eta)/(2*N*beta*np.dot(np.transpose(np.sqrt(p)), np.abs(h)))
+    bounds[rtx] = bound[0][0]
+print("Bound = ", bounds)
+        
 for a in range(num_av):
     final_accs = []
     acc_histories = []
-    for rtx in range(rtx_max+1):
-        if search_rtx == False:
-            rtx = rtx_fix
-        num_rounds = math.floor(uplink_budget/(rtx+1)) # Number of communication rounds
+    for rtx in rtx_list:
+        M = rtx+1 # Number of uplink transmissions per round
+        print("M=", M)
+        print("h=", np.abs(pc.h))
+        print("a=", a)
+        num_rounds = math.floor(C_bar/(C_t+M*C_u)) # Number of communication rounds
         
         #--Set up DNN models--
         model_template = tf.keras.models.Sequential([
@@ -93,9 +116,12 @@ for a in range(num_av):
         
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         
+        #Create optimizer
+        opt = SGD(lr=beta, momentum=0, decay=0)
+        
         #Compile all models to initiate weights
         for model in model_list:
-            model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+            model.compile(optimizer=opt, loss=loss_fn, metrics=['accuracy'])
         
         #Broadcast global model to all user devices
         global_weights = global_model.get_weights()
@@ -103,12 +129,12 @@ for a in range(num_av):
             model.set_weights(global_weights)
             
         #--Perform FL--
-        pc = PowerControl(num_devices, sigma_w)
         pc.setStatic(static)
         if static == True:
             pc.setRtx(rtx)
         else:
             pc.setBudgetGrowth(uplink_budget, growth)
+            
         acc_history = []
         for r in range(num_rounds):
             print("Communication round " + str(r+1) + "/" + str(num_rounds))
@@ -143,6 +169,7 @@ for a in range(num_av):
                     std[d] = np.std(np.abs(update_vectors[d]))
                     for l in range(num_layers):
                         weight_updates[d][l] = weight_updates[d][l]/std[d]
+                #print("Parameter mean = ", np.mean(update_vectors))
                     
             #Calculate vector norms for plotting
             update_vectors = HelperFunctions.vectorifyUpdates(weight_updates, False)
@@ -224,13 +251,9 @@ for a in range(num_av):
 for a in range(len(acc_histories)):
     for b in range(len(acc_histories)):
         av_acc_histories[a][b] = av_acc_histories[a][b]/num_av
-opt_rtx = final_accs.index(max(final_accs))
-print("Optimal rtx =", opt_rtx)
 
 rtx = 0
 for acc_history in av_acc_histories:
-    if search_rtx == False:
-        rtx = rtx_fix
     if static == True:
         filename = filename_start + str(rtx) + filename_end
     else:
@@ -268,3 +291,9 @@ for acc_history in av_acc_histories:
     
     print("Stored results in file:", filename)
     rtx = rtx + 1
+    
+#--Store bound--
+filename = filename_start + "bound-" + str(uplink_budget) + "budget"
+with open("./data/"+filename+".txt", "w") as filehandle:
+    for item in bounds:
+        filehandle.write("%s\n" % item[0])
