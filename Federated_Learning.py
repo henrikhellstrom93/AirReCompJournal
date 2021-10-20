@@ -24,10 +24,10 @@ else:
     rtx_max = 0
     search_rtx = False
     rtx_fix = 0
-uplink_budget = 400 # Uplink transmission constraint
+uplink_budget = 20 # Uplink transmission constraint
 normalize = True
 num_devices = 10 # Number of devices
-num_av = 1
+num_av = 2
 bs = 50 # Batch size for local training at devices
 sigma_w = 9 # Noise variance
 #sigma_w = 1
@@ -65,6 +65,7 @@ for i in range(num_devices):
 
 print("Dataset loaded.")
 
+ac_loss_histories = []
 av_acc_histories = []
 norm_history = []
 rcv_norm_history = []
@@ -91,6 +92,7 @@ print("Bound = ", bounds)
         
 for a in range(num_av):
     final_accs = []
+    loss_histories = []
     acc_histories = []
     for rtx in rtx_list:
         M = rtx+1 # Number of uplink transmissions per round
@@ -135,6 +137,7 @@ for a in range(num_av):
         else:
             pc.setBudgetGrowth(uplink_budget, growth)
             
+        loss_history = []
         acc_history = []
         for r in range(num_rounds):
             print("Communication round " + str(r+1) + "/" + str(num_rounds))
@@ -233,6 +236,7 @@ for a in range(num_av):
                 model.set_weights(new_global)
             global_weights = new_global
             #Logging
+            loss_history.append(model_list[0].evaluate(x_test, y_test, verbose=0)[0])
             acc_history.append(model_list[0].evaluate(x_test, y_test, verbose=0)[1])
             print("Current test dataset accuracy: ", acc_history[-1])
             print(str(int(training_time)) + " training seconds elapsed\n")
@@ -240,16 +244,21 @@ for a in range(num_av):
             print(str(int(power_time)) + " power control seconds elapsed\n")
             print(str(int(time.time()-start)) + " total seconds elapsed\n") 
             
+        loss_histories.append(loss_history)
         acc_histories.append(acc_history)
         final_accs.append(acc_history[-1])
     if a == 0:
+        av_loss_histories = loss_histories
         av_acc_histories = acc_histories
     else:
         for b in range(len(acc_histories)):
             for c in range(len(acc_histories)):
+                av_loss_histories[b][c] = av_loss_histories[b][c] + loss_histories[b][c]
                 av_acc_histories[b][c] = av_acc_histories[b][c] + acc_histories[b][c]
+
 for a in range(len(acc_histories)):
     for b in range(len(acc_histories)):
+        av_loss_histories[a][b] = av_loss_histories[a][b]/num_av
         av_acc_histories[a][b] = av_acc_histories[a][b]/num_av
 
 rtx = 0
@@ -290,6 +299,19 @@ for acc_history in av_acc_histories:
             filehandle.write("%s\n" % item)
     
     print("Stored results in file:", filename)
+    rtx = rtx + 1
+    
+#--Store loss--
+rtx = 0
+for loss_history in av_loss_histories:
+    if static == True:
+        filename = filename_start + str(rtx) + filename_end
+    else:
+        filename = filename_start + filename_end
+    filename_loss = filename + "_loss"
+    with open("./data/"+filename_loss+".txt", "w") as filehandle:
+        for item in loss_history:
+            filehandle.write("%s\n" % item)
     rtx = rtx + 1
     
 #--Store bound--
