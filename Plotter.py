@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 #filenames = ["3.1622776601683795noise-10hidden-henrik-0rtx-400budget", "3.1622776601683795noise-10hidden-henrik-1rtx-400budget"]
 #filenames = ["8.94427190999916noise-10hidden-henrik-0rtx-400budget", "8.94427190999916noise-10hidden-henrik-1rtx-400budget"]
 #filenames = ["8.94427190999916noise-10hidden-henrik-0rtx-400budget", "8.94427190999916noise-10hidden-henrik-1rtx-400budget", "8.94427190999916noise-10hidden-henrik-2rtx-400budget", "8.94427190999916noise-10hidden-henrik-3rtx-400budget", "8.94427190999916noise-10hidden-henrik-4rtx-400budget", "8.94427190999916noise-10hidden-henrik-5rtx-400budget"]
-filenames = ["9noise-10hidden-henrik-0rtx-400budget", "9noise-10hidden-henrik-1rtx-400budget"]
+filenames = ["9noise-10hidden-henrik-0rtx-20budget_loss", "9noise-10hidden-henrik-3rtx-20budget_loss", "9noise-10hidden-henrik-7rtx-20budget_loss"]
 #filenames = ["3noise-10hidden-henrik-0rtx-400budget", "3noise-10hidden-henrik-1rtx-400budget", "3noise-10hidden-henrik-2rtx-400budget", "3noise-10hidden-henrik-3rtx-400budget", "3noise-10hidden-henrik-4rtx-400budget", "3noise-10hidden-henrik-5rtx-400budget", "3noise-10hidden-henrik-6rtx-400budget"]
 #--Load norm_history from files
 #filenames = ["1noise-10hidden-henrik-3rtx-101budget_norm", "1noise-10hidden-henrik-3rtx-101budget_error"]
@@ -94,26 +94,27 @@ if bound == False:
 
 #--Plot bound
 if bound == True:
+    loss_histories = acc_histories
     bounds = []
-    filename = "9noise-10hidden-henrik-bound-400budget"
+    filename = "9noise-10hidden-henrik-bound-20budget"
     with open("./data/" + filename + ".txt", "r") as filehandle:
         for line in filehandle:
             bounds.append(float(line))
     
-    final_accs = []
-    for acc_history in acc_histories:
-        final_accs.append(acc_history[-1])
+    final_losses = []
+    for loss_history in loss_histories:
+        final_losses.append(loss_history[-1])
         
     #scaling
     factor = 100
-    zero_point = final_accs[0]*factor
-    for i in range(len(final_accs)):
-        final_accs[i] = final_accs[i]*factor
-        print(final_accs[i])
-        final_accs[i] = final_accs[i] - zero_point + 1
+    zero_point = final_losses[0]*factor
+    for i in range(len(final_losses)):
+        final_losses[i] = final_losses[i]*factor
+        print(final_losses[i])
+        final_losses[i] = final_losses[i] - zero_point + 1
         
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
     plt.plot(range(len(bounds)), bounds, colors[0], label="bound")
-    plt.plot(range(len(final_accs)), final_accs, colors[1], label="accuracy")
+    plt.plot(range(len(final_losses)), final_losses, colors[1], label="loss")
     plt.legend()
         

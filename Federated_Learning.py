@@ -15,7 +15,7 @@ from tensorflow.keras.optimizers import SGD
 #--Simulation settings--
 static = True
 if static == True:
-    rtx_list = [0, 1]
+    rtx_list = [0, 3, 7]
     #rtx_list = [0, 1]
 else:
     growth = 0.2
@@ -78,6 +78,7 @@ pc = PowerControl(num_devices, sigma_w)
 #--Calculate bound for heuristic--
 K = num_devices
 h = pc.h
+i = 0
 for rtx in rtx_list:
     pc.setRtx(rtx)
     M = rtx+1
@@ -87,7 +88,8 @@ for rtx in rtx_list:
     b_h = pc.henrikB()
     p = np.square(np.abs(b_h))
     bound = K*np.sqrt(eta)/(2*N*beta*np.dot(np.transpose(np.sqrt(p)), np.abs(h)))
-    bounds[rtx] = bound[0][0]
+    bounds[i] = bound[0][0]
+    i = i + 1
 print("Bound = ", bounds)
         
 for a in range(num_av):
@@ -252,17 +254,18 @@ for a in range(num_av):
         av_acc_histories = acc_histories
     else:
         for b in range(len(acc_histories)):
-            for c in range(len(acc_histories)):
+            for c in range(len(acc_histories[b])):
                 av_loss_histories[b][c] = av_loss_histories[b][c] + loss_histories[b][c]
                 av_acc_histories[b][c] = av_acc_histories[b][c] + acc_histories[b][c]
 
 for a in range(len(acc_histories)):
-    for b in range(len(acc_histories)):
+    for b in range(len(acc_histories[a])):
         av_loss_histories[a][b] = av_loss_histories[a][b]/num_av
         av_acc_histories[a][b] = av_acc_histories[a][b]/num_av
 
-rtx = 0
+rtx_index = 0
 for acc_history in av_acc_histories:
+    rtx = rtx_list[rtx_index]
     if static == True:
         filename = filename_start + str(rtx) + filename_end
     else:
@@ -299,11 +302,12 @@ for acc_history in av_acc_histories:
             filehandle.write("%s\n" % item)
     
     print("Stored results in file:", filename)
-    rtx = rtx + 1
+    rtx_index = rtx_index + 1
     
 #--Store loss--
-rtx = 0
+rtx_index = 0
 for loss_history in av_loss_histories:
+    rtx = rtx_list[rtx_index]
     if static == True:
         filename = filename_start + str(rtx) + filename_end
     else:
@@ -312,7 +316,7 @@ for loss_history in av_loss_histories:
     with open("./data/"+filename_loss+".txt", "w") as filehandle:
         for item in loss_history:
             filehandle.write("%s\n" % item)
-    rtx = rtx + 1
+    rtx_index = rtx_index + 1
     
 #--Store bound--
 filename = filename_start + "bound-" + str(uplink_budget) + "budget"
