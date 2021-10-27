@@ -15,7 +15,7 @@ from tensorflow.keras.optimizers import SGD
 #--Simulation settings--
 static = True
 if static == True:
-    rtx_list = [0, 3, 7]
+    rtx_list = [0, 1, 3, 7]
     #rtx_list = [0, 1]
 else:
     growth = 0.2
@@ -24,21 +24,22 @@ else:
     rtx_max = 0
     search_rtx = False
     rtx_fix = 0
-uplink_budget = 20 # Uplink transmission constraint
+uplink_budget = 80 # Uplink transmission constraint
 normalize = True
 num_devices = 10 # Number of devices
-num_av = 2
+num_av = 30
+num_hidden = 10
 bs = 50 # Batch size for local training at devices
-sigma_w = 9 # Noise variance
+sigma_w = np.sqrt(num_devices*1) # Noise variance
 #sigma_w = 1
 beta = 0.05 # Learning rate
 C_bar = uplink_budget #Cost budget
 C_u = 1 #Cost of uplink transmission
-C_t = 3 #Cost of local training
+C_t = 0 #Cost of local training
 ep = 2 # Number of local epochs before communication round
-filename_start = str(sigma_w) + "noise-10hidden-henrik-"
+filename_start = str(sigma_w) + "noise-" + str(num_hidden) + "hidden-henrik-"
 if static == True:
-    filename_end = "rtx-" + str(uplink_budget) + "budget"
+    filename_end = "rtx-" + str(uplink_budget) + "budget-" + str(num_av) + "numav"
 else:
     filename_end = str(growth) + "growth-" + str(uplink_budget) + "budget"
 powercontrol = "henrik"
@@ -106,8 +107,7 @@ for a in range(num_av):
         #--Set up DNN models--
         model_template = tf.keras.models.Sequential([
             tf.keras.layers.Flatten(input_shape=(28,28)),
-            tf.keras.layers.Dense(10, activation='relu'),
-            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(num_hidden, activation='relu'),
             tf.keras.layers.Dense(10)
         ])
         
@@ -319,7 +319,7 @@ for loss_history in av_loss_histories:
     rtx_index = rtx_index + 1
     
 #--Store bound--
-filename = filename_start + "bound-" + str(uplink_budget) + "budget"
+filename = filename_start + "bound-" + str(uplink_budget) + "budget-" + str(num_av) + "numav"
 with open("./data/"+filename+".txt", "w") as filehandle:
     for item in bounds:
         filehandle.write("%s\n" % item[0])
