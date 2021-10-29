@@ -67,3 +67,33 @@ def calculateMeanVector(vector_list):
         ret_vector = ret_vector + vector_list[i]
     ret_vector = ret_vector/num_vectors
     return ret_vector
+
+#Input: path = path to folder with iWater dataset
+#Output: returns a 30000x6 matrix where the rows contain:
+#row 0: Conductivity
+#row 1: oxygen saturation
+#row 2: ph value
+#row 3: redox
+#row 4: salinity
+#row 5: temperature
+def loadWaterDataset(path):
+    ret = np.zeros((30000, 6))
+    filenames = ["iWater_node_01_CN_A.txt", "iWater_node_01_OS_D.txt", "iWater_node_01_PH_C.txt", "iWater_node_01_RX_C.txt", "iWater_node_01_SA_A.txt", "iWater_node_01_TC1_D.txt"]
+    file_index = 0
+    for filename in filenames:
+        with open(path+filename, "r") as f:
+            raw_line = f.read()
+        
+        date_and_tsv = raw_line.split()
+        timestamps_and_values = date_and_tsv[1::2]
+        values = np.zeros((30000,1))
+        
+        for i in range(30000):
+            timestamp_and_value = timestamps_and_values[i]
+            value = timestamp_and_value[9:]
+            values[i] = value
+            
+        ret[:,file_index] = values.ravel()
+        file_index = file_index + 1
+        
+    return ret
